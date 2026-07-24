@@ -1,0 +1,42 @@
+name: Build Android App (TWA)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-twa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies & Build Web
+        run: |
+          npm install
+          npm run build
+      
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Initialize TWA Project
+        run: |
+          bubblewrap init --manifest https://pavanvzm.github.io/Free-Podcast-Maker-/manifest.json --directory ./twa-project --skipValidation
+          
+      - name: Build Signed APK (Debug)
+        run: |
+          cd twa-project
+          bubblewrap build --skipSigning
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepdive-podcast-app
+          path: twa-project/app/build/outputs/apk/debug/*.apk
+          retention-days: 5
