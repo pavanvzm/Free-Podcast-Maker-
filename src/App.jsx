@@ -1,20 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
 
-const LUCKY_TOPICS = [
+const PRESET_TOPICS = [
   "How Quantum Computing Will Change the World",
   "The Secrets of the Deep Ocean and Mariana Trench",
   "Space Colonization: Building a City on Mars",
   "The Psychology of Decision Making and Cognitive Biases",
-  "The Origin and Evolution of Video Games",
   "How Cryptocurrency and Blockchain Work",
-  "The Lost City of Atlantis: Myth vs Reality",
-  "A Deep Dive into Renewable Energy Systems",
-  "The Art and Science of Professional Cooking",
-  "The Renaissance: When Art Met Science"
+  "The Rise of Artificial Intelligence in Healthcare"
 ];
 
-// Generate robust conversational template scripts locally
+// Fallback high-quality conversational template script generator
 const generateLocalScript = (topic) => {
   const title = topic.trim().replace(/\?$/, "");
   const formattedTitle = title.charAt(0).toUpperCase() + title.slice(1);
@@ -144,14 +140,12 @@ const parseScriptText = (text) => {
 
 function App() {
   const [topic, setTopic] = useState('')
-  const [view, setView] = useState('home') // 'home' | 'results'
   const [status, setStatus] = useState('idle') // 'idle' | 'generating' | 'synthesizing' | 'ready' | 'error'
   const [progress, setProgress] = useState({ step: '', percentage: 0 })
   const [script, setScript] = useState([])
   const [audioBlob, setAudioBlob] = useState(null)
   const [errorMessage, setErrorMessage] = useState('')
-  const [activeTab, setActiveTab] = useState('all') // 'all' | 'podcasts' | 'news' | 'images'
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [showConfig, setShowConfig] = useState(false)
   
   // Settings values (loaded from localStorage if present)
   const [apiType, setApiType] = useState(() => localStorage.getItem('api_type') || 'local')
@@ -263,18 +257,18 @@ function App() {
     localStorage.setItem('host_b_pitch', hostBPitch)
     localStorage.setItem('host_a_rate', hostARate)
     localStorage.setItem('host_b_rate', hostBRate)
-    setSettingsOpen(false)
+    setShowConfig(false)
   }
 
   // Call selected API/local generation
   const runGeneration = async (searchTopic) => {
     if (apiType === 'local') {
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate thinking
-      return parseScriptText(""); // Returns template script
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate thinking
+      return generateLocalScript(searchTopic);
     }
 
     if (!apiKey.trim()) {
-      throw new Error("Please enter an API Key in the Settings panel to use Cloud LLM generation.")
+      throw new Error("Please configure your API Key in the Settings panel to use Cloud LLM generation.")
     }
 
     setProgress({ step: 'Contacting Cloud LLM...', percentage: 20 })
@@ -339,7 +333,7 @@ Requirements:
       const err = await response.text()
       throw new Error(`Cloud API error: ${response.status}. ${err}`)
     }
-    
+
     const data = await response.json()
     let rawText = ''
     if (apiType === 'groq' || apiType === 'openai') {
@@ -361,10 +355,9 @@ Requirements:
     if (!searchTopic.trim()) return
 
     setTopic(searchTopic)
-    setView('results')
     setStatus('generating')
     setErrorMessage('')
-    setProgress({ step: 'Searching web content and creating outline...', percentage: 10 })
+    setProgress({ step: 'Analyzing research materials and outline structure...', percentage: 15 })
 
     try {
       // Step 1: Script Generation
@@ -373,17 +366,17 @@ Requirements:
         parsedScript = generateLocalScript(searchTopic)
       }
       setScript(parsedScript)
-      setProgress({ step: 'Conversational dialogue structured!', percentage: 50 })
+      setProgress({ step: 'Drafting conversational segments...', percentage: 45 })
 
       // Step 2: Synthesis preparation
       setStatus('synthesizing')
-      setProgress({ step: 'Generating master podcast audio track...', percentage: 70 })
+      setProgress({ step: 'Generating offline audio wave track...', percentage: 75 })
 
       // Build synthesized placeholder track using Web Audio API OfflineAudioContext
       const audioContext = new (window.AudioContext || window.webkitAudioContext)()
       const sampleRate = 44100
       const numberOfChannels = 2
-      const length = sampleRate * 10 // Create shorter WAV template for instant browser download, play actual TTS live!
+      const length = sampleRate * 10 // Short template WAV
       
       const buffer = audioContext.createBuffer(numberOfChannels, length, sampleRate)
       for (let channel = 0; channel < numberOfChannels; channel++) {
@@ -407,12 +400,12 @@ Requirements:
       const wavBlob = audioBufferToWav(renderedBuffer)
       setAudioBlob(wavBlob)
 
-      setProgress({ step: 'Podcast search result and player ready!', percentage: 100 })
+      setProgress({ step: 'AI Podcast fully structured and generated!', percentage: 100 })
       setStatus('ready')
       setActiveLineIndex(0) // Highlight first line ready to play
     } catch (error) {
       console.error(error)
-      setErrorMessage(error.message || "Failed to compile the podcast script. Please check your network and settings.")
+      setErrorMessage(error.message || "Failed to compile the podcast script. Please check your settings.")
       setStatus('error')
     }
   }
@@ -469,11 +462,6 @@ Requirements:
     }
   }
 
-  const handleLucky = () => {
-    const randomTopic = LUCKY_TOPICS[Math.floor(Math.random() * LUCKY_TOPICS.length)]
-    generatePodcast(randomTopic)
-  }
-
   const downloadWav = () => {
     if (!audioBlob) return
     const url = URL.createObjectURL(audioBlob)
@@ -484,7 +472,7 @@ Requirements:
     URL.revokeObjectURL(url)
   }
 
-  const resetToHome = () => {
+  const resetAll = () => {
     window.speechSynthesis.cancel()
     setIsSpeaking(false)
     setActiveLineIndex(-1)
@@ -492,7 +480,6 @@ Requirements:
     setScript([])
     setAudioBlob(null)
     setStatus('idle')
-    setView('home')
   }
 
   const togglePlayback = () => {
@@ -515,415 +502,284 @@ Requirements:
     }
   }
 
-  const selectLuckyTopic = () => {
-    const randomTopic = LUCKY_TOPICS[Math.floor(Math.random() * LUCKY_TOPICS.length)];
-    setTopic(randomTopic);
-  }
-
   return (
-    <div className="google-page-root">
-      {/* HEADER NAVBAR (Only visible in Google Home View) */}
-      {view === 'home' && (
-        <header className="google-home-header">
-          <div className="nav-left">
-            <a href="https://about.google/" target="_blank" rel="noreferrer">About</a>
-            <a href="https://store.google.com/" target="_blank" rel="noreferrer">Store</a>
-          </div>
-          <div className="nav-right">
-            <a href="https://mail.google.com" target="_blank" rel="noreferrer">Gmail</a>
-            <a href="https://images.google.com" target="_blank" rel="noreferrer">Images</a>
-            <button className="settings-trigger-btn" onClick={() => setSettingsOpen(true)} title="Podcast Voice & API Settings">
-              ⚙️ Settings
-            </button>
-            <div className="google-apps-icon" title="Google Apps">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path fill="currentColor" d="M6 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm12-2c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zm-6 2c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-6 4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
-              </svg>
-            </div>
-            <div className="google-avatar-circle">P</div>
-          </div>
-        </header>
-      )}
+    <div className="podcast-app-container">
+      {/* GLOSSY NAV BAR */}
+      <header className="studio-navbar">
+        <div className="navbar-logo">
+          <span className="logo-icon">🎙️</span>
+          <h2>DeepDive <span className="logo-gradient">Studio</span></h2>
+        </div>
+        <div className="navbar-actions">
+          <button className="navbar-btn secondary" onClick={() => setShowConfig(true)}>
+            ⚙️ Voice & API Settings
+          </button>
+        </div>
+      </header>
 
-      {/* SEARCH RESULTS HEADER (Only visible in Google Results View) */}
-      {view === 'results' && (
-        <header className="google-results-header">
-          <div className="results-header-left">
-            <div className="google-small-logo" onClick={resetToHome} title="Go back to Google Podcast Search">
-              <span className="g-blue">G</span>
-              <span className="g-red">o</span>
-              <span className="g-yellow">o</span>
-              <span className="g-blue">g</span>
-              <span className="g-green">l</span>
-              <span className="g-red">e</span>
-              <span className="logo-badge">Podcasts</span>
-            </div>
-            <div className="results-search-box-wrapper">
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && generatePodcast()}
-              />
-              <div className="search-box-icons">
-                <span className="icon-lens" onClick={() => generatePodcast()}>🔍</span>
-              </div>
-            </div>
-          </div>
-          <div className="results-header-right">
-            <button className="settings-trigger-btn" onClick={() => setSettingsOpen(true)}>
-              ⚙️ Settings
-            </button>
-            <div className="google-avatar-circle">P</div>
-          </div>
-        </header>
-      )}
-
-      {/* GOOGLE HOME PAGE VIEW */}
-      {view === 'home' && (
-        <main className="google-home-main">
-          <div className="google-logo-wrapper">
-            <span className="g-blue">G</span>
-            <span className="g-red">o</span>
-            <span className="g-yellow">o</span>
-            <span className="g-blue">g</span>
-            <span className="g-green">l</span>
-            <span className="g-red">e</span>
-            <div className="google-logo-subtitle">AI Podcast Engine</div>
-          </div>
-
-          <div className="search-bar-container">
-            <div className="google-search-input-wrapper">
-              <span className="search-magnifier">🔍</span>
-              <input
-                type="text"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Enter any topic for a 20-30min deep dive podcast..."
-                onKeyDown={(e) => e.key === 'Enter' && generatePodcast()}
-              />
-              <div className="input-actions-right">
-                <span className="mic-icon" title="Select a lucky topic" onClick={selectLuckyTopic}>🎤</span>
-                <span className="lens-icon" title="Search settings" onClick={() => setSettingsOpen(true)}>📷</span>
-              </div>
+      {/* MAIN CONTAINER */}
+      <main className="studio-main-viewport">
+        {/* LANDING / INTRO PORTAL */}
+        {status === 'idle' && (
+          <div className="landing-portal">
+            <div className="hero-section">
+              <span className="hero-sparkle-pill">✨ 100% Free Conversational Synthesis</span>
+              <h1>Instant <span className="text-gradient">30-Minute AI Podcast</span> Generator</h1>
+              <p className="hero-subtext">
+                Enter any topic. Our AI generates an comprehensive conversational dialogue, schedules Host A and Host B voice tracks, and reads it with browser-native text-to-speech.
+              </p>
             </div>
 
-            <div className="google-buttons-row">
-              <button className="google-search-btn" onClick={() => generatePodcast()} disabled={!topic.trim()}>
-                Generate 30min Podcast
-              </button>
-              <button className="lucky-btn" onClick={handleLucky}>
-                I'm Feeling Lucky
-              </button>
-            </div>
-          </div>
-
-          <div className="quick-help-pills">
-            <span>Popular:</span>
-            {LUCKY_TOPICS.slice(0, 3).map((t, idx) => (
-              <button key={idx} onClick={() => generatePodcast(t)} className="pill-btn">
-                {t.split(":")[0]}
-              </button>
-            ))}
-          </div>
-        </main>
-      )}
-
-      {/* GOOGLE SEARCH RESULTS VIEW */}
-      {view === 'results' && (
-        <main className="google-results-main">
-          {/* Sub-navigation categories */}
-          <div className="results-categories-bar">
-            <div className={`category-item ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
-              🔍 All Results
-            </div>
-            <div className={`category-item ${activeTab === 'podcasts' ? 'active' : ''}`} onClick={() => setActiveTab('podcasts')}>
-              🎙️ Podcasts
-            </div>
-            <div className={`category-item ${activeTab === 'news' ? 'active' : ''}`} onClick={() => setActiveTab('news')}>
-              📰 News
-            </div>
-            <div className={`category-item ${activeTab === 'images' ? 'active' : ''}`} onClick={() => setActiveTab('images')}>
-              🖼️ Images
-            </div>
-          </div>
-
-          {/* Search Statistics */}
-          <div className="results-stats">
-            About 3,420,000 deep dive podcast results (0.34 seconds) for "{topic}"
-          </div>
-
-          {/* PROCESSING STATES */}
-          {(status === 'generating' || status === 'synthesizing') && (
-            <div className="google-loading-container">
-              <div className="ai-gemini-pulse-line"></div>
-              <div className="google-spinner-dots">
-                <span className="dot blue"></span>
-                <span className="dot red"></span>
-                <span className="dot yellow"></span>
-                <span className="dot green"></span>
-              </div>
-              <h3>Generating your custom 20 to 30 minute podcast...</h3>
-              <p className="loading-status-text">{progress.step}</p>
-              <div className="google-progress-bar">
-                <div className="google-progress-fill" style={{ width: `${progress.percentage}%` }}></div>
-              </div>
-              <p className="loading-tip">Tip: This uses {apiType === 'local' ? 'instant client-side synthesis templates.' : `cloud model '${apiModel}'.`}</p>
-            </div>
-          )}
-
-          {/* ERROR STATE */}
-          {status === 'error' && (
-            <div className="google-error-container">
-              <h2>⚠️ DeepDive Generation Error</h2>
-              <p>{errorMessage}</p>
-              <div className="error-actions">
-                <button className="google-search-btn" onClick={() => generatePodcast()}>
-                  🔄 Retry Generation
-                </button>
-                <button className="lucky-btn" onClick={() => { setApiType('local'); generatePodcast(); }}>
-                  ⚡ Fallback to Instant Offline Mode
-                </button>
-                <button className="lucky-btn" onClick={resetToHome}>
-                  🏠 Return Home
+            {/* TOPIC GENERATOR INTERFACE */}
+            <div className="generation-form-card">
+              <div className="input-group">
+                <input
+                  type="text"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Enter a complex topic (e.g., Space Colonization, Quantum Computing, History of Rome)..."
+                  onKeyDown={(e) => e.key === 'Enter' && generatePodcast()}
+                />
+                <button className="primary-btn submit" onClick={() => generatePodcast()} disabled={!topic.trim()}>
+                  ⚡ Generate Podcast Studio
                 </button>
               </div>
+
+              {/* Presets and options */}
+              <div className="presets-pill-row">
+                <span className="presets-label">Popular Topics:</span>
+                {PRESET_TOPICS.map((preset, index) => (
+                  <button key={index} className="preset-pill" onClick={() => generatePodcast(preset)}>
+                    {preset}
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
 
-          {/* READY STATE & PLAYER VIEW */}
-          {status === 'ready' && (
-            <div className="google-results-grid">
+            {/* CARDS / FEATURES GRID */}
+            <div className="features-grid">
+              <div className="feature-card">
+                <div className="feature-icon">🎙️</div>
+                <h3>Dual Voice Host Format</h3>
+                <p>Features an alternating dialogue flow between David (Host A) and Sarah (Host B) for natural back-and-forth discussions.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">⚡</div>
+                <h3>25–30 Mins Synthesized Scale</h3>
+                <p>Detailed historical contexts, deep concept analysis, modern day impacts, and comprehensive future roadmaps.</p>
+              </div>
+              <div className="feature-card">
+                <div className="feature-icon">📁</div>
+                <h3>WAV Master Export</h3>
+                <p>Download fully processed WAV format audio streams instantly directly from your browser's Offline Audio context.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
-              {/* Left results column */}
-              <div className="results-left-column">
+        {/* LOADING & INITIALIZATION STUDIO WORKSPACE */}
+        {(status === 'generating' || status === 'synthesizing') && (
+          <div className="studio-loader-card">
+            <div className="audio-wave-animation">
+              <span></span><span></span><span></span><span></span><span></span>
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <h2>Building Podcast Workspace</h2>
+            <p className="loading-task">{progress.step}</p>
+            <div className="progress-bar-track">
+              <div className="progress-bar-indicator" style={{ width: `${progress.percentage}%` }}></div>
+            </div>
+            <p className="loading-tip">
+              Using {apiType === 'local' ? 'Instant local structural script compiler' : `Cloud API: ${apiModel}`}
+            </p>
+          </div>
+        )}
 
-                {/* Google AI Overview Podcasting Panel */}
-                <div className="google-ai-overview-card">
-                  <div className="ai-overview-header">
-                    <span className="ai-badge-sparkle">✨</span>
-                    <h4>AI Overview: DeepDive Podcast generated successfully</h4>
+        {/* ERROR SCREEN */}
+        {status === 'error' && (
+          <div className="studio-error-card">
+            <div className="error-icon">⚠️</div>
+            <h2>Generation Halted</h2>
+            <p className="error-details">{errorMessage}</p>
+            <div className="error-actions-row">
+              <button className="primary-btn" onClick={() => generatePodcast()}>
+                🔄 Retry Generation
+              </button>
+              <button className="secondary-btn" onClick={() => { setApiType('local'); generatePodcast(); }}>
+                ⚡ Use Instant Offline Mode
+              </button>
+              <button className="text-btn" onClick={resetAll}>
+                🏠 Go Back Home
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* READY / STUDIO PLAYGROUND RESULTS VIEW */}
+        {status === 'ready' && (
+          <div className="studio-workspace-results">
+            <div className="workspace-header">
+              <button className="back-home-link" onClick={resetAll}>
+                ← Create New Podcast
+              </button>
+              <div className="podcast-workspace-title">
+                <span className="badge">STUDIO WORKSPACE READY</span>
+                <h1>🎙️ {topic}</h1>
+              </div>
+            </div>
+
+            <div className="studio-grid-layout">
+              {/* Left Column: Player & Script Teleprompter */}
+              <div className="studio-left-panel">
+
+                {/* Media Controller Card */}
+                <div className="premium-media-player">
+                  <div className="media-info">
+                    <span className="live-pill">LIVE READ TTS ACTIVE</span>
+                    <h3>DeepDive Podcast: Exploring "{topic}"</h3>
+                    <p>David (Host A) & Sarah (Host B) • Scale: 25–30 Minute Full Segment</p>
                   </div>
 
-                  <div className="podcast-player-section">
-                    <div className="podcast-player-controls-container">
-                      <div className="podcast-meta">
-                        <span className="podcast-badge-live">LIVE READ TTS</span>
-                        <h3>🎙️ Inside "{topic}"</h3>
-                        <p className="podcast-desc">Alternating interactive voices • 25–30 minute runtime scale</p>
-                      </div>
+                  <div className="player-controls-toolbar">
+                    <button className="control-btn" onClick={() => skipLine(-1)} disabled={activeLineIndex <= 0}>
+                      ⏮️ Previous Line
+                    </button>
+                    <button className={`control-btn play-pause-btn ${isSpeaking ? 'is-playing' : ''}`} onClick={togglePlayback}>
+                      {isSpeaking ? '⏸️ Pause Read' : '▶️ Play Spoken Podcast'}
+                    </button>
+                    <button className="control-btn" onClick={() => skipLine(1)} disabled={activeLineIndex >= script.length - 1}>
+                      Next Line ⏭️
+                    </button>
+                    <button className="control-btn download-btn" onClick={downloadWav}>
+                      📥 Download WAV Master
+                    </button>
+                  </div>
 
-                      <div className="player-toolbar">
-                        <button className="player-btn prev" onClick={() => skipLine(-1)} disabled={activeLineIndex <= 0}>
-                          ⏮️ Prev
-                        </button>
-                        <button className={`player-btn play-pause ${isSpeaking ? 'active' : ''}`} onClick={togglePlayback}>
-                          {isSpeaking ? '⏸️ Pause Podcast' : '▶️ Play Podcast'}
-                        </button>
-                        <button className="player-btn next" onClick={() => skipLine(1)} disabled={activeLineIndex >= script.length - 1}>
-                          Next ⏭️
-                        </button>
-                        <button className="player-btn download" onClick={downloadWav} title="Download synthesized WAV master track">
-                          📥 Download WAV
-                        </button>
-                      </div>
+                  <p className="wav-notice">
+                    ⚠️ *Note: Client-side WAV download exports an interactive high-quality placeholder sample to avoid browser memory crashes. Live text-to-speech reads the full dialogue script seamlessly.*
+                  </p>
 
-                      {/* Visual Waveform Effect */}
-                      <div className={`waveform-simulation ${isSpeaking ? 'animating' : ''}`}>
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
-                        <span></span><span></span><span></span><span></span><span></span>
-                      </div>
-                    </div>
-
-                    {/* Interactive Teleprompter Transcript */}
-                    <div className="interactive-teleprompter">
-                      <div className="teleprompter-header">
-                        Interactive Live Script (Autoscrolls during audio play)
-                      </div>
-                      <div className="teleprompter-scroll-box">
-                        {script.map((line, idx) => {
-                          const isActive = idx === activeLineIndex;
-                          return (
-                            <div
-                              key={idx}
-                              ref={isActive ? activeLineRef : null}
-                              onClick={() => {
-                                window.speechSynthesis.cancel()
-                                setActiveLineIndex(idx)
-                                setIsSpeaking(true)
-                              }}
-                              className={`dialogue-bubble-row ${line.speaker === 'Host A' ? 'host-a-row' : 'host-b-row'} ${isActive ? 'active' : ''}`}
-                            >
-                              <div className="avatar-badge">
-                                {line.speaker === 'Host A' ? '👨‍💼 Host A' : '👩‍💼 Host B'}
-                              </div>
-                              <div className="bubble-text-content">
-                                {line.text}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  {/* Waveform active simulation */}
+                  <div className={`media-waveform ${isSpeaking ? 'active' : ''}`}>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span><span></span>
                   </div>
                 </div>
 
-                {/* Simulated Organic Google Search Results */}
-                <div className="organic-results-wrapper">
-                  <div className="organic-result-item">
-                    <div className="result-breadcrumbs">
-                      https://podcasts.google.com › deepdive › {topic.toLowerCase().replace(/\s+/g, '-')}
-                    </div>
-                    <a href="#podcast" className="result-title" onClick={(e) => { e.preventDefault(); togglePlayback(); }}>
-                      DeepDive Podcast: Comprehensive Exploration of {topic}
-                    </a>
-                    <p className="result-snippet">
-                      Listen to David and Sarah breakdown the foundational pillars, history, and future roadmap of {topic}.
-                      This 30-minute podcast covers real-world implementations, expert opinions, and the core ethics surrounding the issue.
-                    </p>
+                {/* Script Teleprompter Telemetry */}
+                <div className="live-script-teleprompter">
+                  <div className="teleprompter-banner">
+                    <h4>Interactive Script Player (Click any segment below to jump to that speech node)</h4>
                   </div>
-
-                  <div className="organic-result-item">
-                    <div className="result-breadcrumbs">
-                      https://en.wikipedia.org › wiki › {topic.toLowerCase().replace(/\s+/g, '_')}
-                    </div>
-                    <a href="https://wikipedia.org" target="_blank" rel="noreferrer" className="result-title">
-                      {topic} - Wikipedia, the free encyclopedia
-                    </a>
-                    <p className="result-snippet">
-                      <strong>{topic}</strong> represents a key system in modern society. This comprehensive encyclopedic entry covers the initial development phase, critical breakthroughs from early pioneers, and contemporary advancements as of 2025.
-                    </p>
-                  </div>
-
-                  <div className="organic-result-item">
-                    <div className="result-breadcrumbs">
-                      https://techcrunch.com › tags › {topic.toLowerCase().replace(/\s+/g, '-')}
-                    </div>
-                    <a href="https://techcrunch.com" target="_blank" rel="noreferrer" className="result-title">
-                      The Future of {topic}: Trends, Disruptions, and Market Valuation
-                    </a>
-                    <p className="result-snippet">
-                      Recent venture capital flows show an extraordinary surge in tech projects addressing {topic}.
-                      Analysts project a compound annual growth rate of over 18% as global industries rush to adopt these principles.
-                    </p>
+                  <div className="teleprompter-viewport">
+                    {script.map((line, index) => {
+                      const isActive = index === activeLineIndex;
+                      return (
+                        <div
+                          key={index}
+                          ref={isActive ? activeLineRef : null}
+                          onClick={() => {
+                            window.speechSynthesis.cancel()
+                            setActiveLineIndex(index)
+                            setIsSpeaking(true)
+                          }}
+                          className={`teleprompter-bubble-row ${line.speaker === 'Host A' ? 'host-a-bubble' : 'host-b-bubble'} ${isActive ? 'active-highlight' : ''}`}
+                        >
+                          <div className="speaker-meta">
+                            {line.speaker === 'Host A' ? '👨‍💼 Host A (David)' : '👩‍💼 Host B (Sarah)'}
+                            <span className="chapter-tag">{line.chapter}</span>
+                          </div>
+                          <p className="speaker-text">{line.text}</p>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
 
               </div>
 
-              {/* Right column: Google Knowledge Graph Panel */}
-              <div className="results-right-column">
-                <div className="knowledge-panel-card">
-                  <div className="kp-header">
-                    <h3>{topic}</h3>
-                    <p className="kp-subtitle">Podcast Subject & AI Synthesis Overview</p>
-                  </div>
+              {/* Right Column: Knowledge Details & Active Speeches Panel */}
+              <div className="studio-right-panel">
+                <div className="metadata-panel-card">
+                  <h3>Podcast Blueprint</h3>
+                  <div className="blueprint-divider"></div>
 
-                  <div className="kp-media-placeholder">
-                    <div className="kp-audio-waves">
-                      <span></span><span></span><span></span><span></span>
+                  <p className="blueprint-p text-secondary">
+                    This podcast segment is generated through deep AI contextual synthesis. Alternating voice engines ensure high engagement, utilizing structured conversational transitions.
+                  </p>
+
+                  <div className="metadata-list">
+                    <div className="metadata-item">
+                      <strong>Host A (David) Voice:</strong>
+                      <span>{hostAVoice || 'Default Male'}</span>
                     </div>
-                    <span className="kp-media-title">Google AI Podcast Series</span>
-                  </div>
-
-                  <div className="kp-body">
-                    <p className="kp-description">
-                      The subject of <strong>{topic}</strong> is characterized by rapid development and high relevance. Through interactive multi-host discussion, listeners gain holistic knowledge spanning from early historical context to future applications.
-                    </p>
-
-                    <div className="kp-details-list">
-                      <div className="kp-detail-item">
-                        <strong>Hosts:</strong> <span>David (Host A), Sarah (Host B)</span>
-                      </div>
-                      <div className="kp-detail-item">
-                        <strong>Scale:</strong> <span>Full-scale 25–30 Minute Discussion</span>
-                      </div>
-                      <div className="kp-detail-item">
-                        <strong>API Mode:</strong> <span>{apiType === 'local' ? 'Instant Client-Side Emulator' : `Cloud LLM: ${apiModel}`}</span>
-                      </div>
-                      <div className="kp-detail-item">
-                        <strong>Audio Master:</strong> <span>Available for download (WAV format)</span>
-                      </div>
+                    <div className="metadata-item">
+                      <strong>Host B (Sarah) Voice:</strong>
+                      <span>{hostBVoice || 'Default Female'}</span>
+                    </div>
+                    <div className="metadata-item">
+                      <strong>Script Engine:</strong>
+                      <span>{apiType === 'local' ? 'Instant Structural Synthesis' : `${apiType.toUpperCase()} (${apiModel})`}</span>
+                    </div>
+                    <div className="metadata-item">
+                      <strong>Chapters:</strong>
+                      <span>Introduction, Foundations, Historical Context, Modern Impact, Future Outlook, Conclusion</span>
+                    </div>
+                    <div className="metadata-item">
+                      <strong>Audio Stream Format:</strong>
+                      <span>16-bit PCM WAV (WAVE)</span>
                     </div>
                   </div>
                 </div>
               </div>
-
             </div>
-          )}
-        </main>
-      )}
+          </div>
+        )}
+      </main>
 
-      {/* SEARCH SETTINGS MODAL */}
-      {settingsOpen && (
-        <div className="settings-modal-overlay">
-          <div className="settings-modal-card">
-            <div className="settings-header">
-              <h2>⚙️ Search & Podcast Settings</h2>
-              <button className="close-modal-btn" onClick={() => setSettingsOpen(false)}>×</button>
+      {/* CONFIGURATION & API SETTINGS MODAL */}
+      {showConfig && (
+        <div className="config-modal-overlay">
+          <div className="config-modal-card">
+            <div className="modal-header">
+              <h2>⚙️ Studio & API Engine Settings</h2>
+              <button className="close-btn" onClick={() => setShowConfig(false)}>×</button>
             </div>
-            
-            <div className="settings-body">
-              {/* API Configuration Group */}
-              <div className="settings-group">
+
+            <div className="modal-body">
+              {/* API Configuration */}
+              <section className="settings-section">
                 <h3>1. Script Generator Engine</h3>
-                <div className="generator-selector-row">
-                  <label className={`gen-pill ${apiType === 'local' ? 'active' : ''}`}>
-                    <input
-                      type="radio"
-                      name="api_type"
-                      value="local"
-                      checked={apiType === 'local'}
-                      onChange={() => setApiType('local')}
-                    />
+                <div className="engine-select-grid">
+                  <button className={`engine-btn ${apiType === 'local' ? 'active' : ''}`} onClick={() => setApiType('local')}>
                     ⚡ Instant Offline (Free)
-                  </label>
-                  <label className={`gen-pill ${apiType === 'groq' ? 'active' : ''}`}>
-                    <input
-                      type="radio"
-                      name="api_type"
-                      value="groq"
-                      checked={apiType === 'groq'}
-                      onChange={() => setApiType('groq')}
-                    />
+                  </button>
+                  <button className={`engine-btn ${apiType === 'groq' ? 'active' : ''}`} onClick={() => setApiType('groq')}>
                     Groq Cloud API
-                  </label>
-                  <label className={`gen-pill ${apiType === 'openai' ? 'active' : ''}`}>
-                    <input
-                      type="radio"
-                      name="api_type"
-                      value="openai"
-                      checked={apiType === 'openai'}
-                      onChange={() => setApiType('openai')}
-                    />
+                  </button>
+                  <button className={`engine-btn ${apiType === 'openai' ? 'active' : ''}`} onClick={() => setApiType('openai')}>
                     OpenAI API
-                  </label>
-                  <label className={`gen-pill ${apiType === 'gemini' ? 'active' : ''}`}>
-                    <input
-                      type="radio"
-                      name="api_type"
-                      value="gemini"
-                      checked={apiType === 'gemini'}
-                      onChange={() => setApiType('gemini')}
-                    />
+                  </button>
+                  <button className={`engine-btn ${apiType === 'gemini' ? 'active' : ''}`} onClick={() => setApiType('gemini')}>
                     Google Gemini API
-                  </label>
+                  </button>
                 </div>
 
                 {apiType !== 'local' && (
-                  <div className="cloud-settings-inputs">
-                    <div className="input-field">
-                      <label>API Bearer Key:</label>
+                  <div className="cloud-engine-inputs">
+                    <div className="field">
+                      <label>API Key / Token:</label>
                       <input
                         type="password"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder={`Paste your ${apiType.toUpperCase()} API key here...`}
+                        placeholder={`Paste your ${apiType.toUpperCase()} API key...`}
                       />
                     </div>
-                    <div className="input-field">
-                      <label>Model Name:</label>
+                    <div className="field">
+                      <label>LLM Model Name:</label>
                       <input
                         type="text"
                         value={apiModel}
@@ -933,89 +789,68 @@ Requirements:
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
 
-              {/* Host Configuration Group */}
-              <div className="settings-group">
-                <h3>2. Voice Synthesizer Properties</h3>
+              {/* TTS Host Configurations */}
+              <section className="settings-section">
+                <h3>2. Voice Synthesizer Profiles</h3>
 
-                {/* Host A settings */}
-                <div className="host-voice-config-card">
-                  <h4>👨‍💼 Host A (David)</h4>
-                  <div className="input-field">
-                    <label>TTS Voice:</label>
-                    <select value={hostAVoice} onChange={(e) => setHostAVoice(e.target.value)}>
-                      {systemVoices.map((v, i) => (
-                        <option key={i} value={v.name}>{v.name} ({v.lang})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="sliders-row">
-                    <div className="input-field">
-                      <label>Pitch: {hostAPitch}</label>
-                      <input type="range" min="0.5" max="2" step="0.1" value={hostAPitch} onChange={(e) => setHostAPitch(e.target.value)} />
+                <div className="host-config-row">
+                  {/* Host A */}
+                  <div className="host-voice-card">
+                    <h4>👨‍💼 Host A (David)</h4>
+                    <div className="field">
+                      <label>Browser Voice:</label>
+                      <select value={hostAVoice} onChange={(e) => setHostAVoice(e.target.value)}>
+                        {systemVoices.map((voice, i) => (
+                          <option key={i} value={voice.name}>{voice.name} ({voice.lang})</option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="input-field">
-                      <label>Speed: {hostARate}x</label>
-                      <input type="range" min="0.5" max="2" step="0.05" value={hostARate} onChange={(e) => setHostARate(e.target.value)} />
+                    <div className="field-sliders">
+                      <div className="slider-item">
+                        <label>Pitch ({hostAPitch}):</label>
+                        <input type="range" min="0.5" max="2" step="0.1" value={hostAPitch} onChange={(e) => setHostAPitch(e.target.value)} />
+                      </div>
+                      <div className="slider-item">
+                        <label>Speed ({hostARate}x):</label>
+                        <input type="range" min="0.5" max="2" step="0.05" value={hostARate} onChange={(e) => setHostARate(e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Host B */}
+                  <div className="host-voice-card">
+                    <h4>👩‍💼 Host B (Sarah)</h4>
+                    <div className="field">
+                      <label>Browser Voice:</label>
+                      <select value={hostBVoice} onChange={(e) => setHostBVoice(e.target.value)}>
+                        {systemVoices.map((voice, i) => (
+                          <option key={i} value={voice.name}>{voice.name} ({voice.lang})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field-sliders">
+                      <div className="slider-item">
+                        <label>Pitch ({hostBPitch}):</label>
+                        <input type="range" min="0.5" max="2" step="0.1" value={hostBPitch} onChange={(e) => setHostBPitch(e.target.value)} />
+                      </div>
+                      <div className="slider-item">
+                        <label>Speed ({hostBRate}x):</label>
+                        <input type="range" min="0.5" max="2" step="0.05" value={hostBRate} onChange={(e) => setHostBRate(e.target.value)} />
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Host B settings */}
-                <div className="host-voice-config-card">
-                  <h4>👩‍💼 Host B (Sarah)</h4>
-                  <div className="input-field">
-                    <label>TTS Voice:</label>
-                    <select value={hostBVoice} onChange={(e) => setHostBVoice(e.target.value)}>
-                      {systemVoices.map((v, i) => (
-                        <option key={i} value={v.name}>{v.name} ({v.lang})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="sliders-row">
-                    <div className="input-field">
-                      <label>Pitch: {hostBPitch}</label>
-                      <input type="range" min="0.5" max="2" step="0.1" value={hostBPitch} onChange={(e) => setHostBPitch(e.target.value)} />
-                    </div>
-                    <div className="input-field">
-                      <label>Speed: {hostBRate}x</label>
-                      <input type="range" min="0.5" max="2" step="0.05" value={hostBRate} onChange={(e) => setHostBRate(e.target.value)} />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              </section>
             </div>
 
-            <div className="settings-footer">
-              <button className="lucky-btn" onClick={() => setSettingsOpen(false)}>Cancel</button>
-              <button className="google-search-btn" onClick={saveSettings}>Apply & Save Settings</button>
+            <div className="modal-footer">
+              <button className="secondary-btn" onClick={() => setShowConfig(false)}>Cancel</button>
+              <button className="primary-btn" onClick={saveSettings}>Apply & Save Studio Settings</button>
             </div>
           </div>
         </div>
-      )}
-
-      {/* FOOTER NAVBAR (Only visible in Google Home View) */}
-      {view === 'home' && (
-        <footer className="google-home-footer">
-          <div className="footer-location">
-            <span>📍 United States</span>
-            <span>• From your IP address</span>
-          </div>
-          <div className="footer-links-row">
-            <div className="footer-links-left">
-              <a href="https://about.google" target="_blank" rel="noreferrer">About</a>
-              <a href="https://ads.google.com" target="_blank" rel="noreferrer">Advertising</a>
-              <a href="https://www.google.com/services/" target="_blank" rel="noreferrer">Business</a>
-              <a href="https://google.com/search/howsearchworks" target="_blank" rel="noreferrer">How Search works</a>
-            </div>
-            <div className="footer-links-right">
-              <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">Privacy</a>
-              <a href="https://policies.google.com/terms" target="_blank" rel="noreferrer">Terms</a>
-              <button className="footer-settings-btn" onClick={() => setSettingsOpen(true)}>Settings</button>
-            </div>
-          </div>
-        </footer>
       )}
     </div>
   )
