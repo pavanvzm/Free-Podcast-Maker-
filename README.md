@@ -47,6 +47,26 @@ npm run build
 npm run preview
 ```
 
+### Deploy to GitHub Pages
+
+The project is configured for GitHub Pages deployment. After building:
+
+1. Run `npm run build`
+2. The `dist/` folder contains the production build
+3. Push the `gh-pages` branch to GitHub:
+   ```bash
+   git checkout gh-pages
+   git add -A
+   git commit -m "Deploy to GitHub Pages"
+   git push origin gh-pages --force
+   ```
+4. Enable GitHub Pages in your repo settings (Settings → Pages → Source: gh-pages branch)
+5. Your app will be live at: `https://<username>.github.io/deepdive-ai-podcast/`
+
+## 🌐 Live Demo
+
+Visit the live demo at: `https://<username>.github.io/deepdive-ai-podcast/`
+
 ## 📖 How It Works
 
 ### 1. Script Generation
